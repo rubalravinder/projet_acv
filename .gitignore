@@ -130,3 +130,6 @@ dmypy.json
 
 # Virtual Documents
 .virtual_documents/
+
+#Image data
+notebooks/data/
