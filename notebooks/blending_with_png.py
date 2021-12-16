@@ -53,19 +53,13 @@ def blend_img_with_overlay(img, overlay_img, blending_pos_x, blending_pos_y):
     pos_x2 = blending_pos_x + over_h
     pos_y2 = blending_pos_y + over_w
 
-    # on met en gray scale pour avoir un channel
-    overlayMask = cv2.cvtColor(overlay_img, cv2.COLOR_BGR2GRAY)
-    _, overlayMask = cv2.threshold(overlayMask, 10, 1, cv2.THRESH_BINARY_INV) # on crée une matrice de bool pour savoir s'il y a
-    # du contenu ou si c'est du background
-    # pixel au dessus de 10 sont True et ceux en dessous de 10 seront False
-
-    # on a une matrice de bool mais que de la taille de l'overlay, on en crée une de la taille de l'img pour pouvoir l'appliquer partout
-    extOverlayMask = np.ones(img.shape[:2], np.bool) # on crée un array de bool. Pour l'instant tout est True
-    extOverlayMask[blending_pos_x:pos_x2, blending_pos_y:pos_y2] = overlayMask[:,:,:3] # on change certaines des valeurs en False
-
+    # on a une matrice mais que de la taille de l'overlay, on en crée une de la taille de l'img pour pouvoir l'appliquer partout
+    extOverlay = np.zeros(img.shape, np.uint8) # on crée un array de 0. Elle peut que prendre 256 valeurs différentes
+    extOverlay[blending_pos_x:pos_x2, blending_pos_y:pos_y2] = overlay_img[:,:,:3]
+    # on met les valeurs des pixels de l'overlay, le reste reste à 0 (background + reste de l'img originale)
 
     # on écrase les valeurs dans img avec celles de l'overlay
-    new_img[blending_pos_x:pos_x2, blending_pos_y:pos_y2] = overlay_img[:,:,:3] # on change juste les 3 premiers channels
+    new_img[extOverlay > 0] = extOverlay[extOverlay > 0] # on met dans new img seulement les valeurs différentes de 0 (où y'as de l'info)
 
     return new_img
 
@@ -73,7 +67,7 @@ def blend_img_with_overlay(img, overlay_img, blending_pos_x, blending_pos_y):
 def lens_filter(img, png_fname): #png_fname pour récupérer le path de l'image
     results = get_face_landmarks(img)
     doggy_ears = cv2.imread(png_fname, cv2.IMREAD_UNCHANGED) # read the image with opencv in another window than img
-    print(doggy_ears.shape) # on vérifie qu'il y a 4 channels (le dernier pour alpha) pour vérifier que c'est bien un png
+    # on vérifie qu'il y a 4 channels (le dernier pour alpha) pour vérifier que c'est bien un png
     # si c'est pas le cas et qu'on a que 3 channels, on met le param IMREAD UNCHANGED pour que opencv change pas les channels en lisant
     # l'image
     new_img = img.copy()
