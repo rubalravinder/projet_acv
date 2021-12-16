@@ -63,30 +63,30 @@ def lens_filter(img, png_fname): #png_fname pour récupérer le path de l'image
 
         # on veut rotationner l'img en fonction de l'angle calculé qui correspond à l'angle du visage
         # voir le notebook day2 ACV
-        M = cv2.getRotationMatrix2D((dog_w/2, dog_h)/2, angle, 1) # on compute la matrix pour faire la rotation
+        M = cv2.getRotationMatrix2D((dog_w/2, dog_h/2), angle, 1) # on compute la matrix pour faire la rotation
         # centre de rotation, angle, échelle
         doggy_ears = cv2.warpAffine(doggy_ears, # img
                         M, # matrice de transformation
                         (dog_w, dog_h)) # size of img
     
-    # resize image of doggy_ears for them to match the scale of face
-    # on va regarder les points landmarks du visage à utiliser pour avoir l'échelle du visage
-    face_right = face_landmarks[454] # pts le plus à droite du visage
-    face_left = face_landmarks[234] # pts le plus à gauche
+        # resize image of doggy_ears for them to match the scale of face
+        # on va regarder les points landmarks du visage à utiliser pour avoir l'échelle du visage
+        face_right = face_landmarks[454] # pts le plus à droite du visage
+        face_left = face_landmarks[234] # pts le plus à gauche
 
-    # on calcule la largeur du visage
-    face_w = math.sqrt((face_right.x - face_left.x)**2 + (face_right.y - face_left.y)**2)
+        # on calcule la largeur du visage
+        face_w = math.sqrt((face_right.x - face_left.x)**2 + (face_right.y - face_left.y)**2)
 
-    # on veut changer les dimensions des doggy ears avec un ratio
-    img_w = img.shape[:2] # dimensions de l'img
+        # on veut changer les dimensions des doggy ears avec un ratio
+        img_h, img_w = img.shape[:2] # dimensions de l'img
 
-    ratio = (face_w * img_w) / dog_w
+        ratio = (face_w * img_w) / dog_w
 
-    # on resize les doggy ears pour qu'elles soient à la même largeur que le visage
-    cv2.resize(doggy_ears, # img à resize
-                (int(ratio * dog_w), int(ratio * dog_h))) # nvelles dimensions de l'img
-    
-    
+        # on resize les doggy ears pour qu'elles soient à la même largeur que le visage
+        cv2.resize(doggy_ears, # img à resize
+                    (int(ratio * dog_w), int(ratio * dog_h))) # nvelles dimensions de l'img
+        
+        
     
 
 
@@ -108,7 +108,7 @@ with mp_face_mesh.FaceMesh(max_num_faces=1, # détecte 1 visage max
         cv2.imshow('Webcam', frame) # ouvre une page avec la caméra "brute"
         cv2.imshow('Face landmarks', draw_face_landmarks(frame)) # ouvre une 2e fenêtre avec les landmarks des visages si y'en a
         cv2.imshow('Sharpened', sharpening(frame)) # 3e fenêtre avec le filtre qui accentue les bords
-        cv2.imshow('Doggy Ears', lens_filter(frame)) # 4e fenêtre
+        cv2.imshow('Doggy Ears', lens_filter(frame,"./doggy_ears.png")) # 4e fenêtre
 
 
 
