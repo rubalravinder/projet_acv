@@ -43,10 +43,39 @@ def compute_angle(point1, point2):
     angle = -180/math.pi * math.atan(float(y2-y1)/float(x2-x1)) # on fait la tangente qu'on multiplie par -180/pi
     return angle
 
+def blend_img_with_overlay(img, overlay_img, blending_pos_x, blending_pos_y):
+    img_h, img_w = img.shape[:2]
+    over_h, over_w = overlay_img.shape[:2]
+
+    new_img = img.copy()
+
+    # les 2 imgs sont pas à la même taille.
+    pos_x2 = blending_pos_x + over_h
+    pos_y2 = blending_pos_y + over_w
+
+    # on met en gray scale pour avoir un channel
+    overlayMask = cv2.cvtColor(overlay_img, cv2.COLOR_BGR2GRAY)
+    _, overlayMask = cv2.threshold(overlayMask, 10, 1, cv2.THRESH_BINARY_INV) # on crée une matrice de bool pour savoir s'il y a
+    # du contenu ou si c'est du background
+    # pixel au dessus de 10 sont True et ceux en dessous de 10 seront False
+
+    # on a une matrice de bool mais que de la taille de l'overlay, on en crée une de la taille de l'img pour pouvoir l'appliquer partout
+    extOverlayMask = np.ones(img.shape[:2], np.bool) # on crée un array de bool. Pour l'instant tout est True
+    extOverlayMask[blending_pos_x:pos_x2, blending_pos_y:pos_y2] = overlayMask[:,:,:3] # on change certaines des valeurs en False
+
+
+    # on écrase les valeurs dans img avec celles de l'overlay
+    new_img[blending_pos_x:pos_x2, blending_pos_y:pos_y2] = overlay_img[:,:,:3] # on change juste les 3 premiers channels
+
+    return new_img
+
 # récuperer l'image utilisée par la prof pour le filtre depuis le google drive -> day3
 def lens_filter(img, png_fname): #png_fname pour récupérer le path de l'image
     results = get_face_landmarks(img)
-    doggy_ears = cv2.imread(png_fname) # read the image with opencv in another window than img
+    doggy_ears = cv2.imread(png_fname, cv2.IMREAD_UNCHANGED) # read the image with opencv in another window than img
+    print(doggy_ears.shape) # on vérifie qu'il y a 4 channels (le dernier pour alpha) pour vérifier que c'est bien un png
+    # si c'est pas le cas et qu'on a que 3 channels, on met le param IMREAD UNCHANGED pour que opencv change pas les channels en lisant
+    # l'image
     new_img = img.copy()
 
     if results.multi_face_landmarks:
@@ -91,9 +120,24 @@ def lens_filter(img, png_fname): #png_fname pour récupérer le path de l'image
         # on resize les doggy ears pour qu'elles soient aux même dimensions que le visage
         doggy_ears = cv2.resize(doggy_ears, # img à resize
                     (int(ratio_w * dog_w), int(dog_h*ratio_h))) # nvelles dimensions de l'img
-        
+
+        # on veut blend l'img avec les doggy ears. on cherche la position des ears sur l'image
+        # /!\ dans opencv, x et y sont inversés mais pas dans mediapipe
+        dog_h, dog_w = doggy_ears.shape[:2] # les dim ont changé vu qu'on resize, on récup les nvelles valeurs
+
+        pos_x = int(img_h * face_top.y - dog_h/2)
+        pos_y = int(img_w * face_top.x - dog_w/2)
+
+        # on utile une fonction pour blend qu'on a définit plus haut
+        doggy_ears = blend_img_with_overlay(img, doggy_ears, pos_x, pos_y)
+
+        # on veut juste récup les oreilles et pas toute l'img, pour pas avoir le fond noir.
+        # pour ca on va créer un masque qui est une matrice de booleans. Voir fonction pour blend
 
     return doggy_ears
+
+
+
 
 
 
@@ -110,7 +154,8 @@ with mp_face_mesh.FaceMesh(max_num_faces=1, # détecte 1 visage max
         cv2.imshow('Webcam', frame) # ouvre une page avec la caméra "brute"
         # cv2.imshow('Face landmarks', draw_face_landmarks(frame)) # ouvre une 2e fenêtre avec les landmarks des visages si y'en a
         # cv2.imshow('Sharpened', sharpening(frame)) # 3e fenêtre avec le filtre qui accentue les bords
-        cv2.imshow('Doggy Ears', lens_filter(frame,"./doggy_ears.png")) # 4e fenêtre
+        cv2.imshow('Doggy Ears', lens_filter(frame,"./doggy_ears.png")) # 4e fenêtre avec juste les oreilles
+
 
 
 
