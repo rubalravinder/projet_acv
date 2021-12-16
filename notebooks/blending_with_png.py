@@ -73,18 +73,32 @@ def lens_filter(img, png_fname): #png_fname pour récupérer le path de l'image
         # on va regarder les points landmarks du visage à utiliser pour avoir l'échelle du visage
         face_right = face_landmarks[454] # pts le plus à droite du visage
         face_left = face_landmarks[234] # pts le plus à gauche
+        
+        face_top = face_landmarks[10] # pts le plus haut du visage
+        face_bottom = face_landmarks[152] # pts le plus bas du visage
 
         # on calcule la largeur du visage
         face_w = math.sqrt((face_right.x - face_left.x)**2 + (face_right.y - face_left.y)**2)
+        # on calcule la longueur du visage
+        face_h = math.sqrt((face_top.x - face_bottom.x)**2 + (face_top.y - face_bottom.y)**2)
 
-        # on veut changer les dimensions des doggy ears avec un ratio
-        img_h, img_w = img.shape[:2] # dimensions de l'img
+        # on veut changer les dimensions des doggy ears avec un ratio pour la largeur et un pour la hauteur
+        img_h, img_w = img.shape[:2] # dimensions de l'img de base affichée sur la caméra
 
-        ratio = (face_w * img_w) / dog_w
+        ratio_w = (face_w * img_w) / dog_w
+        ratio_h = (img_h * face_h) / dog_h
 
+<<<<<<< HEAD
         # on resize les doggy ears pour qu'elles soient à la même largeur que le visage
         cv2.resize(doggy_ears, (int(ratio * dog_w), int(ratio * dog_h))) # nvelles dimensions de l'img
         print((int(ratio * dog_w), int(ratio * dog_h)))
+=======
+        # on resize les doggy ears pour qu'elles soient aux même dimensions que le visage
+        doggy_ears = cv2.resize(doggy_ears, # img à resize
+                    (int(ratio_w * dog_w), int(dog_h*ratio_h))) # nvelles dimensions de l'img
+        
+
+>>>>>>> 63e510536a8e83438d2b243d14e02b9f246d8873
     return doggy_ears
 
 
