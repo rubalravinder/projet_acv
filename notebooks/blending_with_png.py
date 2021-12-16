@@ -47,15 +47,37 @@ def blend_img_with_overlay(img, overlay_img, blending_pos_x, blending_pos_y):
     img_h, img_w = img.shape[:2]
     over_h, over_w = overlay_img.shape[:2]
 
+    # Maintenant, on aimerait que la caméra crash pas à chaque fois qu'on sort du cadre
+    # on va faire en sorte de croper le filtre (on pourrait sinon lui dire de pas mettre du filtre du tout)
+    crop_left = 0
+    crop_right = 0
+    crop_top = 0
+    crop_bottom = 0
+
+    if blending_pos_y < 0 : # si on dépasse sur la gauche de l'img
+        crop_left = - blending_pos_y
+    if blending_pos_y + over_w > img_w: # si on dépasse sur la droite de l'img
+        crop_right = blending_pos_y + over_w - img_w
+
+    if blending_pos_x < 0 : # si on dépasse par le dessous de l'img
+        crop_top = - blending_pos_x
+    if blending_pos_x + over_h > img_h: # si on dépasse par le haut de l'img
+        crop_bottom = blending_pos_x + over_h - img_h
+    
+
     new_img = img.copy()
 
-    # les 2 imgs sont pas à la même taille.
+    # on a x et y pour l'image, on récupère les 2 autres extrémités du rectangle correspondant à l'overlay
     pos_x2 = blending_pos_x + over_h
     pos_y2 = blending_pos_y + over_w
 
+    # on veut juste récup les oreilles et pas toute l'img, pour pas avoir le fond noir.
+    # pour ca on va créer un masque qui est une matrice de booleans
+
+
     # on a une matrice mais que de la taille de l'overlay, on en crée une de la taille de l'img pour pouvoir l'appliquer partout
     extOverlay = np.zeros(img.shape, np.uint8) # on crée un array de 0. Elle peut que prendre 256 valeurs différentes
-    extOverlay[blending_pos_x:pos_x2, blending_pos_y:pos_y2] = overlay_img[:,:,:3]
+    extOverlay[(blending_pos_x + crop_top):(pos_x2 - crop_bottom), (blending_pos_y + crop_left):(pos_y2 - crop_right)] = overlay_img[crop_top:(over_h - crop_bottom),crop_left:(over_w - crop_right),:3]
     # on met les valeurs des pixels de l'overlay, le reste reste à 0 (background + reste de l'img originale)
 
     # on écrase les valeurs dans img avec celles de l'overlay
@@ -125,8 +147,10 @@ def lens_filter(img, png_fname): #png_fname pour récupérer le path de l'image
         # on utile une fonction pour blend qu'on a définit plus haut
         doggy_ears = blend_img_with_overlay(img, doggy_ears, pos_x, pos_y)
 
-        # on veut juste récup les oreilles et pas toute l'img, pour pas avoir le fond noir.
-        # pour ca on va créer un masque qui est une matrice de booleans. Voir fonction pour blend
+
+
+
+
 
     return doggy_ears
 
