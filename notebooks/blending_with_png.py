@@ -74,20 +74,23 @@ def blend_img_with_overlay(img, overlay_img, blending_pos_x, blending_pos_y):
     # on veut juste récup les oreilles et pas toute l'img, pour pas avoir le fond noir.
     # pour ca on va créer un masque qui est une matrice de booleans
 
+    if (crop_left < over_w) and (crop_right < over_w) and (crop_top < over_h) and (crop_bottom < over_h):
+        # on a une matrice mais que de la taille de l'overlay, on en crée une de la taille de l'img pour pouvoir l'appliquer partout
+        extOverlay = np.zeros(img.shape, np.uint8) # on crée un array de 0. Elle peut que prendre 256 valeurs différentes
+        extOverlay[(blending_pos_x + crop_top):(pos_x2 - crop_bottom), (blending_pos_y + crop_left):(pos_y2 - crop_right)] = overlay_img[crop_top:(over_h - crop_bottom),crop_left:(over_w - crop_right),:3]
+        # on met les valeurs des pixels de l'overlay, le reste reste à 0 (background + reste de l'img originale)
 
-    # on a une matrice mais que de la taille de l'overlay, on en crée une de la taille de l'img pour pouvoir l'appliquer partout
-    extOverlay = np.zeros(img.shape, np.uint8) # on crée un array de 0. Elle peut que prendre 256 valeurs différentes
-    extOverlay[(blending_pos_x + crop_top):(pos_x2 - crop_bottom), (blending_pos_y + crop_left):(pos_y2 - crop_right)] = overlay_img[crop_top:(over_h - crop_bottom),crop_left:(over_w - crop_right),:3]
-    # on met les valeurs des pixels de l'overlay, le reste reste à 0 (background + reste de l'img originale)
-
-    # on écrase les valeurs dans img avec celles de l'overlay
-    new_img[extOverlay > 0] = extOverlay[extOverlay > 0] # on met dans new img seulement les valeurs différentes de 0 (où y'as de l'info)
+        # on écrase les valeurs dans img avec celles de l'overlay
+        new_img[extOverlay > 0] = extOverlay[extOverlay > 0] # on met dans new img seulement les valeurs différentes de 0 (où y'as de l'info)
 
     return new_img
 
 
-# récuperer l'image utilisée par la prof pour le filtre depuis le google drive -> day3
-def lens_filter(img, png_fname): #png_fname pour récupérer le path de l'image
+def lens_filter_ears(img, png_fname):
+    """
+    png_fname pour récupérer le path de l'image
+    """
+
     results = get_face_landmarks(img)
     doggy_ears = cv2.imread(png_fname, cv2.IMREAD_UNCHANGED) # read the image with opencv in another window than img
     # on vérifie qu'il y a 4 channels (le dernier pour alpha) pour vérifier que c'est bien un png
@@ -136,26 +139,66 @@ def lens_filter(img, png_fname): #png_fname pour récupérer le path de l'image
 
         # on resize les doggy ears pour qu'elles soient aux même dimensions que le visage
         doggy_ears = cv2.resize(doggy_ears, # img à resize
-                    (int(ratio_w * dog_w), int(dog_h*ratio_h))) # nvelles dimensions de l'img
+                    (int(ratio_w * dog_w), int(dog_h*ratio_w))) # nvelles dimensions de l'img
 
         # on veut blend l'img avec les doggy ears. on cherche la position des ears sur l'image
         # /!\ dans opencv, x et y sont inversés mais pas dans mediapipe
         dog_h, dog_w = doggy_ears.shape[:2] # les dim ont changé vu qu'on resize, on récup les nvelles valeurs
 
-        pos_x = int(img_h * face_top.y - dog_h/2)
+        pos_x = int(img_h * face_top.y - dog_h)
         pos_y = int(img_w * face_top.x - dog_w/2)
 
         # on utile une fonction qu'on a définit plus haut pour blend et crop
         doggy_ears = blend_img_with_overlay(img, doggy_ears, pos_x, pos_y)
 
-
-
-
-
-
     return doggy_ears
 
+def lens_filter_hat(img, png_fname, shift_x, decimal_taille, decalage_vers_droite):
+    """
+    png_fname pour récupérer le path de l'image
+    shift_x : valeur de shift en hauteur pour le filtre qu'on met sur le haut de la tête
+    """
 
+    results = get_face_landmarks(img)
+    xmas_hat = cv2.imread(png_fname, cv2.IMREAD_UNCHANGED)
+    new_img = img.copy()
+
+    if results.multi_face_landmarks:
+        face_landmarks = results.multi_face_landmarks[0].landmark
+
+        hat_h, hat_w = xmas_hat.shape[:2]
+        face_pin_1 = face_landmarks[21] # un pts à gauche du crane
+        face_pin_2 = face_landmarks[251] # un pts à droite du crane
+
+        angle = compute_angle((face_pin_1.x, face_pin_1.y), (face_pin_2.x, face_pin_2.y))
+
+        M = cv2.getRotationMatrix2D((hat_w/2, hat_h/2), angle, 1) # rotation du hat en fonction du visage
+        xmas_hat = cv2.warpAffine(xmas_hat, M, (hat_w, hat_h))
+
+        face_right = face_landmarks[454] # pts le plus à droite du visage
+        face_left = face_landmarks[234] # pts le plus à gauche
+        
+        face_top = face_landmarks[10] # pts le plus haut du visage
+        face_bottom = face_landmarks[152] # pts le plus bas du visage
+
+        face_w = math.sqrt((face_right.x - face_left.x)**2 + (face_right.y - face_left.y)**2) # largeur visage
+        face_h = math.sqrt((face_top.x - face_bottom.x)**2 + (face_top.y - face_bottom.y)**2) # hauteur visage
+
+        img_h, img_w = img.shape[:2]
+
+        ratio_w = (face_w * img_w) / hat_w + decimal_taille
+        ratio_h = (img_h * face_h) / hat_h + decimal_taille
+
+        xmas_hat = cv2.resize(xmas_hat, (int(ratio_w * hat_w), int(hat_h * ratio_w))) # resize
+
+        hat_h, hat_w = xmas_hat.shape[:2]
+
+        pos_x = int(img_h * face_top.y - (hat_h/2 * shift_x))
+        pos_y = int(img_w * face_top.x - hat_w/decalage_vers_droite)
+
+        xmas_hat = blend_img_with_overlay(img, xmas_hat, pos_x, pos_y)
+
+    return xmas_hat
 
 
 
@@ -170,13 +213,12 @@ with mp_face_mesh.FaceMesh(max_num_faces=1, # détecte 1 visage max
         _, frame = cam.read() # frame is the image that we receive
         frame = cv2.flip(frame, 1) # flip the image received because it's a selfie
 
-        cv2.imshow('Webcam', frame) # ouvre une page avec la caméra "brute"
+        # cv2.imshow('Webcam', frame) # ouvre une page avec la caméra "brute"
         # cv2.imshow('Face landmarks', draw_face_landmarks(frame)) # ouvre une 2e fenêtre avec les landmarks des visages si y'en a
         # cv2.imshow('Sharpened', sharpening(frame)) # 3e fenêtre avec le filtre qui accentue les bords
-        cv2.imshow('Doggy Ears', lens_filter(frame,"./doggy_ears.png")) # 4e fenêtre avec juste les oreilles
-
-
-
+        # cv2.imshow('Doggy Ears', lens_filter_ears(frame,"./doggy_ears.png"))
+        cv2.imshow('Xmas hat2', lens_filter_hat(frame, "./xmas_hat2.png", 1.2, 0.2, 3))
+        cv2.imshow('Xmas hat3', lens_filter_hat(frame, "./xmas_hat3.png", 1, 0.15, 3))
 
 
         if cv2.waitKey(1) == 27 : # 27 veut dire escap : si on fait Esc, la boucle s'arrête
@@ -184,5 +226,3 @@ with mp_face_mesh.FaceMesh(max_num_faces=1, # détecte 1 visage max
 
 cam.release() # on release la camera parce qu'on en a plus besoin
 cv2.destroyAllWindows() # on détruit toutes les fenêtres de caméra pour pouvoir relancer la caméra une autre fois
-
-
