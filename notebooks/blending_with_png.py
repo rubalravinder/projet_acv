@@ -88,17 +88,11 @@ def lens_filter(img, png_fname): #png_fname pour récupérer le path de l'image
         ratio_w = (face_w * img_w) / dog_w
         ratio_h = (img_h * face_h) / dog_h
 
-<<<<<<< HEAD
-        # on resize les doggy ears pour qu'elles soient à la même largeur que le visage
-        cv2.resize(doggy_ears, (int(ratio * dog_w), int(ratio * dog_h))) # nvelles dimensions de l'img
-        print((int(ratio * dog_w), int(ratio * dog_h)))
-=======
         # on resize les doggy ears pour qu'elles soient aux même dimensions que le visage
         doggy_ears = cv2.resize(doggy_ears, # img à resize
                     (int(ratio_w * dog_w), int(dog_h*ratio_h))) # nvelles dimensions de l'img
         
 
->>>>>>> 63e510536a8e83438d2b243d14e02b9f246d8873
     return doggy_ears
 
 
