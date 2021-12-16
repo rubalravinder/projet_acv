@@ -85,6 +85,7 @@ def blend_img_with_overlay(img, overlay_img, blending_pos_x, blending_pos_y):
 
     return new_img
 
+
 # récuperer l'image utilisée par la prof pour le filtre depuis le google drive -> day3
 def lens_filter(img, png_fname): #png_fname pour récupérer le path de l'image
     results = get_face_landmarks(img)
@@ -144,7 +145,7 @@ def lens_filter(img, png_fname): #png_fname pour récupérer le path de l'image
         pos_x = int(img_h * face_top.y - dog_h/2)
         pos_y = int(img_w * face_top.x - dog_w/2)
 
-        # on utile une fonction pour blend qu'on a définit plus haut
+        # on utile une fonction qu'on a définit plus haut pour blend et crop
         doggy_ears = blend_img_with_overlay(img, doggy_ears, pos_x, pos_y)
 
 
