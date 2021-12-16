@@ -108,13 +108,10 @@ def quadrillage_filtre(image):
 
 
 # TEST FONCTION
-tree = plt.imread('xmas_tree.jpg')
-quadrillage = quadrillage_filtre(tree)
+tree = plt.imread('xmas_tree.jpg') # import de l'image à tester
+quadrillage = quadrillage_filtre(tree) # application de la fonction pour créer le quadrillage
 
-plt.figure()
-plt.imshow(quadrillage)
-
-# POUR AFFICHER LE RESULTAT : install Pillow
-# from PIL import Image                                                                                
-# >>> img = Image.open('test.png')
-# >>> img.show() 
+# POUR AFFICHER LE RESULTAT : pip install Pillow --> probablement déjà installé dans acv env
+from PIL import Image                                                                            
+img = Image.fromarray(quadrillage, 'RGB') # conversion du numpy array en image RGB
+img.show() # affichage de l'img sur l'appareil
