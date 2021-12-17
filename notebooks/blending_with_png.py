@@ -200,7 +200,52 @@ def lens_filter_hat(img, png_fname, shift_x, decimal_taille, decalage_vers_droit
 
     return xmas_hat
 
+def lens_filter_eyes(img, png_fname):
+    """
+    png_fname pour récupérer le path de l'image
+    """
 
+    results = get_face_landmarks(img)
+    funny_eyes = cv2.imread(png_fname, cv2.IMREAD_UNCHANGED)
+    new_img = img.copy()
+
+    if results.multi_face_landmarks:
+        face_landmarks = results.multi_face_landmarks[0].landmark
+
+        hat_h, hat_w = funny_eyes.shape[:2]
+        face_pin_1 = face_landmarks[33] # un pts à gauche des yeux
+        face_pin_2 = face_landmarks[263] # un pts à droite des yeux
+
+        angle = compute_angle((face_pin_1.x, face_pin_1.y), (face_pin_2.x, face_pin_2.y))
+
+        M = cv2.getRotationMatrix2D((hat_w/2, hat_h/2), angle, 1) # rotation du hat en fonction du visage
+        funny_eyes = cv2.warpAffine(funny_eyes, M, (hat_w, hat_h))
+
+        face_right = face_landmarks[454] # pts le plus à droite du visage
+        face_left = face_landmarks[234] # pts le plus à gauche
+        
+        face_top = face_landmarks[10] # pts le plus haut du visage
+        face_bottom = face_landmarks[152] # pts le plus bas du visage
+
+        face_w = math.sqrt((face_right.x - face_left.x)**2 + (face_right.y - face_left.y)**2) # largeur visage
+        face_h = math.sqrt((face_top.x - face_bottom.x)**2 + (face_top.y - face_bottom.y)**2) # hauteur visage
+
+        img_h, img_w = img.shape[:2]
+
+        ratio_w = (face_w * img_w) / hat_w 
+        ratio_h = (img_h * face_h) / hat_h
+
+        funny_eyes = cv2.resize(funny_eyes, (int(ratio_w * hat_w), int(hat_h * ratio_w))) # resize
+
+        hat_h, hat_w = funny_eyes.shape[:2]
+
+        # à changer : pour l'instant les yeux s'arretent au milieu du visage
+        pos_x = int(img_h * face_top.y - (hat_h/2))
+        pos_y = int(img_w * face_top.x - hat_w)
+
+        funny_eyes = blend_img_with_overlay(img, funny_eyes, pos_x, pos_y)
+
+    return funny_eyes
 
 
 cam = cv2.VideoCapture(0) # allumer la caméra
@@ -217,8 +262,9 @@ with mp_face_mesh.FaceMesh(max_num_faces=1, # détecte 1 visage max
         # cv2.imshow('Face landmarks', draw_face_landmarks(frame)) # ouvre une 2e fenêtre avec les landmarks des visages si y'en a
         # cv2.imshow('Sharpened', sharpening(frame)) # 3e fenêtre avec le filtre qui accentue les bords
         # cv2.imshow('Doggy Ears', lens_filter_ears(frame,"./doggy_ears.png"))
-        cv2.imshow('Xmas hat2', lens_filter_hat(frame, "./xmas_hat2.png", 1.2, 0.2, 3))
-        cv2.imshow('Xmas hat3', lens_filter_hat(frame, "./xmas_hat3.png", 1, 0.15, 3))
+        # cv2.imshow('Xmas hat2', lens_filter_hat(frame, "./xmas_hat2.png", 1.2, 0.2, 3))
+        # cv2.imshow('Xmas hat3', lens_filter_hat(frame, "./xmas_hat3.png", 1, 0.15, 3))
+        cv2.imshow('Funny eyes', lens_filter_eyes(frame, './eyes1.png')) #eyes1 marche pas bien
 
 
         if cv2.waitKey(1) == 27 : # 27 veut dire escap : si on fait Esc, la boucle s'arrête
