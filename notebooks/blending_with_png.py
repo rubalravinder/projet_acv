@@ -7,9 +7,12 @@ import mediapipe as mp
 # on stocke des fonctions mediapipe dans des variables
 mp_face_mesh = mp.solutions.face_mesh
 mp_drawing = mp.solutions.drawing_utils
-mp_drawing_styles = mp.solutions.drawing_styles 
+mp_drawing_styles = mp.solutions.drawing_styles
+
+
 
 # on définit des fonctions de modèle
+
 def get_face_landmarks(img):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) # on change les couleurs de BGR à RGB
     results = face_mesh.process(img)
@@ -20,7 +23,11 @@ def get_face_landmarks(img):
 # results.multi_face_landmarks[0] : donne les infos pour le premier visage vu
 # results.multi_face_landmarks[0].landmark : donne les coordonnées pour le premier visage vu
 
-# on définit un filtre
+
+
+
+# on définit des filtre
+
 def draw_face_landmarks(img):
     results = get_face_landmarks(img)
     new_img = img.copy() # on ne remplace pas l'image, il faut créer une copie qu'on renverra
@@ -212,14 +219,14 @@ def lens_filter_eyes(img, png_fname):
     if results.multi_face_landmarks:
         face_landmarks = results.multi_face_landmarks[0].landmark
 
-        hat_h, hat_w = funny_eyes.shape[:2]
+        eyes_h, eyes_w = funny_eyes.shape[:2]
         face_pin_1 = face_landmarks[33] # un pts à gauche des yeux
         face_pin_2 = face_landmarks[263] # un pts à droite des yeux
 
         angle = compute_angle((face_pin_1.x, face_pin_1.y), (face_pin_2.x, face_pin_2.y))
 
-        M = cv2.getRotationMatrix2D((hat_w/2, hat_h/2), angle, 1) # rotation du hat en fonction du visage
-        funny_eyes = cv2.warpAffine(funny_eyes, M, (hat_w, hat_h))
+        M = cv2.getRotationMatrix2D((eyes_w/2, eyes_h/2), angle, 1) # rotation du hat en fonction du visage
+        funny_eyes = cv2.warpAffine(funny_eyes, M, (eyes_w, eyes_h))
 
         face_right = face_landmarks[454] # pts le plus à droite du visage
         face_left = face_landmarks[234] # pts le plus à gauche
@@ -232,16 +239,16 @@ def lens_filter_eyes(img, png_fname):
 
         img_h, img_w = img.shape[:2]
 
-        ratio_w = (face_w * img_w) / hat_w 
-        ratio_h = (img_h * face_h) / hat_h
+        ratio_w = (face_w * img_w) / eyes_w
+        ratio_h = (img_h * face_h) / eyes_h
 
-        funny_eyes = cv2.resize(funny_eyes, (int(ratio_w * hat_w), int(hat_h * ratio_w))) # resize
+        funny_eyes = cv2.resize(funny_eyes, (int(ratio_w * eyes_w), int(eyes_h * ratio_w))) # resize
 
-        hat_h, hat_w = funny_eyes.shape[:2]
+        eyes_h, eyes_w = funny_eyes.shape[:2]
 
         # à changer : pour l'instant les yeux s'arretent au milieu du visage
-        pos_x = int(img_h * face_top.y - (hat_h/2))
-        pos_y = int(img_w * face_top.x - hat_w)
+        pos_x = int(img_h * face_right.y - eyes_h + 2)
+        pos_y = int(img_w * face_left.x)
 
         funny_eyes = blend_img_with_overlay(img, funny_eyes, pos_x, pos_y)
 
@@ -264,7 +271,9 @@ with mp_face_mesh.FaceMesh(max_num_faces=1, # détecte 1 visage max
         # cv2.imshow('Doggy Ears', lens_filter_ears(frame,"./doggy_ears.png"))
         # cv2.imshow('Xmas hat2', lens_filter_hat(frame, "./xmas_hat2.png", 1.2, 0.2, 3))
         # cv2.imshow('Xmas hat3', lens_filter_hat(frame, "./xmas_hat3.png", 1, 0.15, 3))
-        cv2.imshow('Funny eyes', lens_filter_eyes(frame, './eyes1.png')) #eyes1 marche pas bien
+        cv2.imshow('Funny eyes3', lens_filter_eyes(frame, './eyes3.png'))
+
+
 
 
         if cv2.waitKey(1) == 27 : # 27 veut dire escap : si on fait Esc, la boucle s'arrête
